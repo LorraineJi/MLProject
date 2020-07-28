@@ -1,0 +1,114 @@
+---
+title: "Machine Learning Project"
+author: "Yuxuan Ji"
+date: "7/26/2020"
+output:
+  html_document: default
+---
+
+First of all, load the traing dataset and testing dataset.\newline
+On the purpose of making data processing more straightforward, consider empty string("") as `NA`.
+
+```{r message=FALSE}
+library(tidyverse)
+library(ggplot2)
+library(caret)
+library(randomForest)
+library(rattle)
+
+training <- read.csv("pml-training.csv", na.strings = c("", NA))
+testing <- read.csv("pml-testing.csv", na.strings = c("", NA))
+
+```
+
+### Variable Selection
+```{r include=FALSE}
+summary(training)
+```
+
+By looking at the summary of the `training` dataset, we could know that there are 160 variables and 19622 observations in the dataset. Meanwhile, by looking at the dataset itself, there are a lot of variables that have value `NA` and `""` which are not very useful when training modela. Therefore, we should eliminate variables that have `NA` and `""`. 
+
+```{r}
+
+# Delete columns with all missing values
+training <- training[,colSums(is.na(training)) == 0]
+testing <- testing[,colSums(is.na(testing)) == 0]
+
+```
+
+After eliminating variables that have `NA`s, there are 60 variables left among which there are a few irrelavant variables such as `X`, `user_name`, `raw_timestamp_part_1`. Therefore, we delete the first 7 columns which are index variable, user_name and time-related variables respectively.
+
+```{r}
+
+training <- training[, -c(1:7)]
+testing <- testing[, -c(1:7)]
+
+```
+
+Based on the description on the website, there are 5 different `classe` which are A(exactly according to the specification, B(throwing the elbows to the front), C(lifting the dumbbell only halfway), D(lowering the dumbbell only halfway) and E(throwing the hips to the front) respectively. Thus, we have the following plot as a descriptive analysism of the variable that we want to perdict.
+
+```{r exploratory data analysis}
+
+training %>% ggplot(aes(x=classe)) + geom_bar()
+
+```
+According to the histogram above, we should expect class A as the most frequent label while the other 4 classes are relatively the same.\newline
+
+### Cross Validation
+In order to compare the performance of different models, we split the training dataset into two subsets - `subTraining` and `subTesting`. To be more specific, the former container 75% of the training dataset while the latter contains 25%. Therefore, the original `testing` dataset should be treated as validation dataset by which we performed cross-validation. 
+
+```{r}
+ 
+set.seed(723)
+inTrain <- createDataPartition( y = training$classe, p = 0.75, list = FALSE)
+
+subTraining <- training[inTrain,]
+subTesting <- training[-inTrain,]
+
+```
+
+### Model Building
+
+#### Model1: Decision Tree
+```{r}
+# train the model
+model1 <- train(classe~., method = "rpart", data= subTraining)
+# summary of the final model
+model1$finalModel
+fancyRpartPlot(model1$finalModel)
+# predicting on subTesting dataset
+predict1 <- predict(model1, newdata = subTesting)
+# prediction accuracy
+confusionMatrix(predict1, factor(subTesting$classe))
+
+```
+
+
+#### Model2: Random Forest
+```{r}
+
+# train the model
+model2 <- randomForest(factor(classe) ~., data = subTraining)
+
+# predicting on subTesting dataset
+predict2 <- predict(model2, newdata = subTesting)
+# prediction accuracy
+confusionMatrix(predict2, factor(subTesting$classe))
+
+```
+
+### Conclusion
+##### Chosen model:\newline
+According to the confusion matrix that we got from both models, we decide to use `Random Forest` since predicting with random forest has accuracy 99.55% while predicting with decision tree only has accuracy 49.08% which is a huge difference.\newline
+##### Estimate out-of-sample error
+Because we have chosen `predicting with random forest` as our model, the out of sample erro would be about 0.005.
+
+### Prediction of the Testing dataset
+```{r}
+predict(model2, newdata = testing)
+
+```
+
+
+
+
