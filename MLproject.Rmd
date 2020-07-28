@@ -97,9 +97,26 @@ confusionMatrix(predict2, factor(subTesting$classe))
 
 ```
 
+#### Model3: Boosting
+```{r}
+
+# train the model
+model3 <- train(classe ~., data = subTraining, method = "gbm", verbose = FALSE)
+
+# predicting on subTesting dataset
+predict3 <- predict(model3, newdata = subTesting)
+# prediction accuracy
+confusionMatrix(predict3, factor(subTesting$classe))
+
+```
+
+
 ### Conclusion
 ##### Chosen model:\newline
 According to the confusion matrix that we got from both models, we decide to use `Random Forest` since predicting with random forest has accuracy 99.55% while predicting with decision tree only has accuracy 49.08% which is a huge difference.\newline
+Besides, the final model I attempted, `predicting with boosting`, has an accuracy of 96.31% which is still slightly lower than the random forest model.\newline
+Therefore, the final chosen model is `predicting with random forest`.
+
 ##### Estimate out-of-sample error
 Because we have chosen `predicting with random forest` as our model, the out of sample erro would be about 0.005.
 
